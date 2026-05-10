@@ -12,7 +12,7 @@ html{font-size:16px;-webkit-tap-highlight-color:transparent}
 body{background:var(--bg);color:var(--text);font-family:var(--fb);min-height:100dvh;overscroll-behavior:none}
 button{cursor:pointer;font-family:inherit;border:none;background:none}
 input{font-family:inherit}
-body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:-1;background:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.035'/%3E%3C/svg%3E");opacity:.5}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.035'/%3E%3C/svg%3E");opacity:.5}
 #app{position:relative;z-index:1;max-width:480px;margin:0 auto;padding-bottom:80px}
 #loader{position:fixed;inset:0;z-index:999;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;transition:opacity .4s}
 #loader.out{opacity:0;pointer-events:none}
@@ -193,7 +193,8 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:-1;bac
 </div>
 
 <div class="screen" id="screenTeam">
-  <button class="back" id="backFromTeam" onclick="gotoGroups(curGroup)">← Grupos</button>
+  <button class="back" onclick="gotoGroups()">← Grupos</button>
+  <div class="det-hdr" id="detHdr"></div>
   <div class="stk-grid" id="stkGrid"></div>
 </div>
 
@@ -255,7 +256,7 @@ const ALL_KEYS=allKeys();
 const TOTAL=ALL_KEYS.length;
 
 // ─── STATE ────────────────────────────────────────────────────
-let session=null,myData={},allData={},allNames=[],curTeam=null,curGroup=null;
+let session=null,myData={},allData={},allNames=[],curTeam=null;
 let saveQ={},saveT=null;
 
 // ─── API (GET para lecturas, POST no-cors para escrituras) ────
@@ -368,24 +369,17 @@ function showMainUI(){
 // ─── NAV ──────────────────────────────────────────────────────
 function navTo(view){
   ['nAlbum','nSwaps','nUser','nConf'].forEach(id=>$id(id).classList.remove('active'));
-  if(view==='groups'){$id('nAlbum').classList.add('active');gotoGroups(curGroup);}
+  if(view==='groups'){$id('nAlbum').classList.add('active');gotoGroups();}
   else if(view==='swaps'){$id('nSwaps').classList.add('active');gotoSwaps();}
-  else if(view==='user'){$id('nUser').classList.add('active');gotoGroups(curGroup);}
+  else if(view==='user'){$id('nUser').classList.add('active');gotoGroups();}
   else if(view==='config'){$id('nConf').classList.add('active');gotoConfig();}
 }
 
 // ─── GROUPS ───────────────────────────────────────────────────
-function gotoGroups(restoreGroup){
+function gotoGroups(){
   screen('Groups');renderGroups();
   const fs=fStats(),fp=Math.round(fs.h/FWC_LIST.length*100);
   $id('fwcFill').style.width=fp+'%';$id('fwcH').textContent='✓ '+fs.h;$id('fwcR').textContent='★ '+fs.r;$id('fwcM').textContent='✗ '+fs.m;
-  // Restaurar grupo expandido
-  const gid=restoreGroup||curGroup;
-  if(gid&&GROUPS[gid]){
-    const rows=document.querySelectorAll('.grp-row');
-    const idx=Object.keys(GROUPS).indexOf(gid);
-    if(rows[idx])toggleGroup(gid,rows[idx],GROUPS[gid]);
-  }
 }
 
 function renderGroups(){
@@ -403,9 +397,8 @@ function renderGroups(){
 
 function toggleGroup(gid,row,grp){
   const ex=$id('exp_'+gid);
-  if(ex){ex.remove();row.style.background=grp.c+'12';if(curGroup===gid)curGroup=null;return;}
+  if(ex){ex.remove();row.style.background=grp.c+'12';return;}
   document.querySelectorAll('[id^="exp_"]').forEach(e=>{const og=e.id.replace('exp_','');e.remove();const or=document.querySelector(`[data-gid="${og}"]`);if(or)or.style.background=GROUPS[og].c+'12';});
-  curGroup=gid;
   row.style.background=grp.c+'22';
   const exp=document.createElement('div');exp.id='exp_'+gid;exp.style.marginBottom='6px';
   for(const tid of grp.t){
@@ -423,14 +416,9 @@ function gotoTeam(tid){
   curTeam=tid;const t=TEAMS[tid];
   const ge=Object.entries(GROUPS).find(([,g])=>g.t.includes(tid));
   const gc=ge?ge[1].c:'#fff',gid=ge?ge[0]:'?';
-  curGroup=gid;
   const s=tStats(tid),pct=Math.round(s.h/20*100);
   $id('detHdr').innerHTML=`<div style="display:flex;gap:14px;align-items:flex-start"><div class="det-flag">${t.f}</div><div style="flex:1"><div class="det-name">${t.n}</div><div class="det-meta">Grupo ${gid} · Pág.${t.p} · 20 figuritas</div><div style="display:flex;gap:7px;align-items:center;margin-top:9px"><div style="flex:1;height:5px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden"><div id="detFill" style="height:100%;width:${pct}%;background:${gc};border-radius:3px;transition:width .4s"></div></div><span style="font-family:var(--fh);font-weight:700;color:${gc}">${pct}%</span></div><div class="tcnts" style="margin-top:4px"><span class="tg">✓ ${s.h}</span><span class="to">★ ${s.r}</span><span class="tr">✗ ${s.m}</span></div></div></div><div class="det-acts"><button class="act act-g" onclick="allTeam('${tid}',1)">✅ Todas</button><button class="act act-r" onclick="allTeam('${tid}',0)">🗑 Limpiar</button></div>`;
-  renderGrid(tid);
-  // Actualizar texto del botón volver
-  const backBtn=$id('backFromTeam');
-  if(backBtn)backBtn.textContent='← Grupo '+gid;
-  screen('Team');
+  renderGrid(tid);screen('Team');
 }
 
 function renderGrid(tid){
