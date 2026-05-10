@@ -1,14 +1,18 @@
 function gotoTeam(tid){
-  curTeam=tid;const t=TEAMS[tid];
-  const ge=Object.entries(GROUPS).find(([,g])=>g.t.includes(tid));
-  const gc=ge?ge[1].c:'#fff',gid=ge?ge[0]:'?';
-  const s=tStats(tid),pct=Math.round(s.h/20*100);
+  curTeam=tid;
+  const t=TEAMS[tid];
   
-  // Aquí agregué el nuevo botón "GRUPO" que solo oculta la pantalla actual
+  // Buscamos el grupo de forma segura
+  const geEntry = Object.entries(GROUPS).find(([,g])=>g.t.includes(tid));
+  const gid = geEntry ? geEntry[0] : '?';
+  const groupData = geEntry ? geEntry[1] : null;
+  const gc = groupData ? groupData.c : '#fff';
+  
+  const s=tStats(tid), pct=Math.round(s.h/20*100);
+  
   $id('detHdr').innerHTML=`
     <div style="display:flex;gap:10px;margin-bottom:15px">
-       <button class="back" style="margin-bottom:0" onclick="screen('Groups')">← GRUPO</button>
-       <button class="back" style="margin-bottom:0; opacity:0.6" onclick="location.reload()">🏠 INICIO</button>
+       <button class="back" style="margin-bottom:0" onclick="screen('Groups')">← VOLVER</button>
     </div>
     <div style="display:flex;gap:14px;align-items:flex-start">
        <div class="det-flag">${t.f}</div>
