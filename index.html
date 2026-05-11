@@ -181,7 +181,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:-1;bac
       <div style="font-family:var(--fh);font-size:17px;font-weight:700;color:var(--gold)">Figuritas FWC Especiales</div>
       <div style="font-size:11px;color:var(--text2);margin-top:2px">Portada · Emblemas · Mascotas · Historia</div>
       <div class="tbar" style="margin-top:7px"><div class="tbar-f" id="fwcFill" style="background:var(--gold);width:0%"></div></div>
-      <div class="tcnts"><span class="tg" id="fwcH">✓ 0</span><span class="to" id="fwcR">★ 0</span><span class="tr" id="fwcM">✗ 0</span></div>
+      <div class="tcnts"><span class="tg" id="fwcH">✓ 0</span><span class="to" id="fwcR">★ 0</span><span class="tr" id="fwcM">✗ 0</span><span style="margin-left:auto;font-family:var(--fh);font-weight:700;color:var(--gold)" id="fwcCount">0/20</span></div>
     </div>
     <div class="ta">›</div>
   </div>
@@ -383,7 +383,6 @@ function gotoGroups(restoreGroup){
   screen('Groups');renderGroups();
   const fs=fStats(),fp=Math.round(fs.h/FWC_LIST.length*100);
   $id('fwcFill').style.width=fp+'%';$id('fwcH').textContent='✓ '+fs.h;$id('fwcR').textContent='★ '+fs.r;$id('fwcM').textContent='✗ '+fs.m;
-  // update fwc counter
   const fwcCnt=$id('fwcCount');if(fwcCnt)fwcCnt.textContent=fs.h+'/'+FWC_LIST.length;
   // Restaurar grupo expandido
   const gid=restoreGroup||curGroup;
@@ -571,7 +570,7 @@ function printList() {
       +'<div class="cols">'+colsHtml+'</div></div>';
   }
 
-  var groupBlocks = buildFWCBlock();
+  var groupBlocks = '';
   var gkeys=Object.keys(GROUPS);
   for(var gi=0;gi<gkeys.length;gi++){
     var gid2=gkeys[gi],grp2=GROUPS[gid2];
@@ -580,6 +579,7 @@ function printList() {
     groupBlocks+='<div class="gb"><div class="gt" style="background:'+grp2.c+'">GRUPO '+gid2+'</div>'
       +'<div class="cols">'+cols+'</div></div>';
   }
+  groupBlocks += buildFWCBlock();
 
   var css='@page{size:A4 landscape;margin:5mm}'
     +'*{box-sizing:border-box;margin:0;padding:0}'
