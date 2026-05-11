@@ -544,174 +544,79 @@ function doLogout(){if(!confirm('¿Cerrar sesión?'))return;localStorage.removeI
 // ─── PRINT ────────────────────────────────────────────────────
 function printList() {
   const nombre = session?.nombre || 'Mi álbum';
-  let html = `<!DOCTYPE html><html lang="es"><head>
-  <meta charset="UTF-8">
-  <title>Figuritas Mundial 2026 - ${nombre}</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, sans-serif; font-size: 10px; color: #000; background: #fff; padding: 12mm; }
-    h1 { font-size: 16px; font-weight: bold; text-align: center; margin-bottom: 4px; }
-    h2 { font-size: 11px; font-weight: bold; color: #fff; padding: 4px 8px; margin: 10px 0 4px; border-radius: 3px; }
-    .subtitle { font-size: 9px; text-align: center; color: #666; margin-bottom: 10px; }
-    .group-section { margin-bottom: 8px; page-break-inside: avoid; }
-    .team-label { font-size: 9px; font-weight: bold; color: #333; margin: 5px 0 2px; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid #ddd; padding-bottom: 2px; }
-    .stickers { display: flex; flex-wrap: wrap; gap: 3px; }
-    .stk { display: flex; align-items: center; gap: 3px; width: 68px; font-size: 9px; }
-    .box { width: 12px; height: 12px; border: 1.5px solid #333; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; }
-    .box.have { background: #000; color: #fff; }
-    .box.rep { background: #555; color: #fff; }
-    .stk-code { font-weight: bold; }
-    .legend { display: flex; gap: 12px; font-size: 9px; margin-bottom: 8px; justify-content: center; }
-    .leg-item { display: flex; align-items: center; gap: 4px; }
-    .fwc-section { margin-bottom: 10px; }
-    .stats { text-align: center; font-size: 10px; margin-bottom: 8px; color: #333; }
-    @media print { body { padding: 8mm; } }
-  </style>
-  </head><body>`;
+  let totalHave=0,totalMiss=0;
+  for(const k of ALL_KEYS){const v=gv(k);if(v>=1)totalHave++;else totalMiss++;}
 
-  // Stats
-  let totalHave=0, totalMiss=0, totalRep=0;
-  for(const k of ALL_KEYS){const v=gv(k);if(v===0)totalMiss++;else{totalHave++;if(v>=2)totalRep+=(v-1);}}
-
-  html += `<h1>⚽ Mundial 2026 — Figuritas de ${nombre}</h1>`;
-  html += `<div class="subtitle">Generado el ${new Date().toLocaleDateString('es-AR')} · ${totalHave}/${TOTAL} tengo · ${totalMiss} faltan · ${totalRep} repetidas</div>`;
-  html += `<div class="legend">
-    <div class="leg-item"><div class="box"></div> Falta</div>
-    <div class="leg-item"><div class="box have">✓</div> Tengo</div>
-    <div class="leg-item"><div class="box rep">★</div> Repetida</div>
-  </div>`;
-
-  // FWC especiales
-  html += `<div class="fwc-section">`;
-  html += `<h2 style="background:#333">🏆 FWC Especiales</h2>`;
-  html += `<div class="stickers">`;
-  for(const f of FWC_LIST){
-    const v=gv(f.id);
-    const cls=v===0?'':v===1?'have':'rep';
-    const icon=v===0?'':v===1?'✓':'★';
-    html+=`<div class="stk"><div class="box ${cls}">${icon}</div><span class="stk-code">${f.id}</span></div>`;
-  }
-  html += `</div></div>`;
-
-  // Equipos por grupo
-  for(const [gid,grp] of Object.entries(GROUPS)){
-    // Color para el encabezado de grupo
-    const hexColor = grp.c;
-    html += `<div class="group-section">`;
-    html += `<h2 style="background:${hexColor}">GRUPO ${gid}</h2>`;
-
-    for(const tid of grp.t){
-      const t = TEAMS[tid];
-      html += `<div class="team-label">${t.f} ${tid} — ${t.n}</div>`;
-      html += `<div class="stickers">`;
-      for(let i=1;i<=20;i++){
-        const k=tid+i;
-        const v=gv(k);
-        const cls=v===0?'':v===1?'have':'rep';
-        const icon=v===0?'':v===1?'✓':'★';
-        const label=i===1?'ESC':'#'+i;
-        html+=`<div class="stk"><div class="box ${cls}">${icon}</div><span class="stk-code">${tid}${i}</span></div>`;
-      }
-      html += `</div>`;
-    }
-    html += `</div>`;
-  }
-
-  html += `</body></html>`;
-
-  const win = window.open('', '_blank');
-  win.document.write(html);
-  win.document.close();
-  setTimeout(()=>win.print(), 500);
-}
-
-// ─── INIT ─────────────────────────────────────────────────────
-// ─── PRINT ────────────────────────────────────────────────────
-function printList() {
-  const nombre = session?.nombre || 'Mi álbum';
-  let totalHave=0, totalMiss=0, totalRep=0;
-  for(const k of ALL_KEYS){const v=gv(k);if(v===0)totalMiss++;else{totalHave++;if(v>=2)totalRep+=(v-1);}}
-
-  // Armar todas las filas de figuritas
-  // Cada item: { code, have }
-  var items = [];
-
-  // FWC
+  // ── FWC block ──
+  var fwcCells='';
   for(var fi=0;fi<FWC_LIST.length;fi++){
-    var f=FWC_LIST[fi];
-    items.push({ code: f.id, have: gv(f.id)>=1, group:'FWC', team:'' });
+    var f=FWC_LIST[fi],have=gv(f.id)>=1;
+    fwcCells+='<div class="cell">'+(have?'<span class="cb f">&#9745;</span>':'<span class="cb">&#9744;</span>')
+      +'<span class="cd">'+f.id+'</span></div>';
   }
-  // Equipos
+  var fwcBlock='<div class="gblock">'
+    +'<div class="gtitle" style="background:#333">🏆 FWC ESPECIALES</div>'
+    +'<div class="tcols" style="grid-template-columns:repeat(4,1fr)">'
+    +'<div class="tcol"><div class="cells">'+fwcCells+'</div></div>'
+    +'</div></div>';
+
+  // ── Group blocks ──
+  var groupBlocks='';
   var gkeys=Object.keys(GROUPS);
   for(var gi=0;gi<gkeys.length;gi++){
-    var gid2=gkeys[gi], grp2=GROUPS[gid2];
+    var gid2=gkeys[gi],grp2=GROUPS[gid2];
+    var cols='';
     for(var ti=0;ti<grp2.t.length;ti++){
-      var tid2=grp2.t[ti];
+      var tid2=grp2.t[ti],t2=TEAMS[tid2];
+      var cells='<div class="thead">'+t2.f+' <b>'+tid2+'</b></div>';
       for(var si=1;si<=20;si++){
-        var lbl = si===1 ? tid2+'-E' : tid2+si;
-        items.push({ code: lbl, have: gv(tid2+si)>=1, group: gid2, team: tid2 });
+        var have2=gv(tid2+si)>=1;
+        var lbl=si===1?tid2+'-E':tid2+si;
+        cells+='<div class="cell">'+(have2?'<span class="cb f">&#9745;</span>':'<span class="cb">&#9744;</span>')
+          +'<span class="cd">'+lbl+'</span></div>';
       }
+      cols+='<div class="tcol"><div class="cells">'+cells+'</div></div>';
     }
+    groupBlocks+='<div class="gblock">'
+      +'<div class="gtitle" style="background:'+grp2.c+'">GRUPO '+gid2+'</div>'
+      +'<div class="tcols">'+cols+'</div>'
+      +'</div>';
   }
 
-  // Construir tabla de 15 columnas
-  var COLS = 15;
-  var rows = [];
-  for(var i=0;i<items.length;i+=COLS){ rows.push(items.slice(i,i+COLS)); }
-
-  var tableRows = '';
-  var lastGroup = '';
-  var rowIdx = 0;
-  for(var r=0;r<rows.length;r++){
-    var row = rows[r];
-    // Check if group changed — add separator row
-    var firstItem = row[0];
-    if(firstItem.group !== lastGroup){
-      lastGroup = firstItem.group;
-      var grpColor = lastGroup==='FWC' ? '#333' : (GROUPS[lastGroup]?GROUPS[lastGroup].c:'#666');
-      tableRows += '<tr><td colspan="'+COLS+'" style="background:'+grpColor+';color:#fff;font-weight:bold;font-size:7px;padding:2px 4px;letter-spacing:1px">'
-        + (lastGroup==='FWC' ? '🏆 FWC ESPECIALES' : 'GRUPO '+lastGroup)
-        + '</td></tr>';
-    }
-    var cells = '';
-    for(var c=0;c<COLS;c++){
-      var item = row[c];
-      if(!item){ cells += '<td></td>'; continue; }
-      var cb = item.have ? '☑' : '☐';
-      var style = item.have ? 'color:#000' : 'color:#000';
-      cells += '<td style="white-space:nowrap;padding:1px 2px">'
-        + '<span style="font-size:9px">' + cb + '</span>'
-        + '<span style="font-size:7px;font-weight:bold;margin-left:1px">' + item.code + '</span>'
-        + '</td>';
-    }
-    tableRows += '<tr>' + cells + '</tr>';
-  }
-
-  var html = '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'
-    + '<title>Figuritas Mundial 2026 - ' + nombre + '</title>'
-    + '<style>'
-    + '* { box-sizing:border-box; margin:0; padding:0; }'
-    + '@page { size: A4; margin: 8mm; }'
-    + 'body { font-family: Arial Narrow, Arial, sans-serif; font-size: 8px; color:#000; background:#fff; }'
-    + 'h1 { font-size:13px; font-weight:bold; text-align:center; margin-bottom:2px; }'
-    + '.sub { font-size:8px; text-align:center; color:#444; margin-bottom:4px; }'
-    + '.leg { display:flex; gap:10px; justify-content:center; font-size:8px; margin-bottom:5px; }'
-    + 'table { width:100%; border-collapse:collapse; }'
-    + 'td { border:none; vertical-align:middle; }'
-    + 'tr:nth-child(even) td:not([colspan]) { background:#f5f5f5; }'
-    + '.print-btn { display:block; margin:10px auto; padding:8px 24px; background:#000; color:#fff; border:none; font-size:13px; cursor:pointer; border-radius:4px; }'
-    + '@media print { .print-btn { display:none; } }'
-    + '</style></head><body>'
-    + '<h1>⚽ Mundial 2026 — ' + nombre + '</h1>'
-    + '<div class="sub">' + new Date().toLocaleDateString('es-AR')
-      + ' &nbsp;|&nbsp; ' + totalHave + '/' + TOTAL + ' tengo'
-      + ' &nbsp;|&nbsp; ' + totalMiss + ' faltan'
-      + ' &nbsp;|&nbsp; ' + totalRep + ' repetidas'
-    + '</div>'
-    + '<div class="leg"><span>☐ Falta</span><span>☑ Tengo</span></div>'
-    + '<table>' + tableRows + '</table>'
-    + '<button class="print-btn" onclick="window.print()">🖨️ Imprimir</button>'
-    + '</body></html>';
+  var html='<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'
+    +'<title>Mundial 2026 - '+nombre+'</title>'
+    +'<style>'
+    +'@page{size:A4;margin:6mm}'
+    +'*{box-sizing:border-box;margin:0;padding:0}'
+    +'body{font-family:Arial Narrow,Arial,sans-serif;font-size:7.5px;color:#000;background:#fff}'
+    +'h1{font-size:11px;font-weight:bold;text-align:center;margin-bottom:1px}'
+    +'.sub{font-size:7px;text-align:center;color:#444;margin-bottom:3px}'
+    +'.leg{display:flex;gap:8px;justify-content:center;font-size:7px;margin-bottom:4px}'
+    +'.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:3px}'
+    +'.gblock{border:1px solid #ccc;border-radius:2px;overflow:hidden}'
+    +'.gtitle{color:#fff;font-weight:bold;font-size:7px;padding:2px 4px;letter-spacing:.5px}'
+    +'.tcols{display:grid;grid-template-columns:repeat(4,1fr);gap:0}'
+    +'.tcol{border-left:1px solid #eee}'
+    +'.tcol:first-child{border-left:none}'
+    +'.thead{font-size:7px;font-weight:bold;padding:2px 3px;background:#f0f0f0;border-bottom:1px solid #ddd}'
+    +'.cells{display:flex;flex-direction:column}'
+    +'.cell{display:flex;align-items:center;gap:2px;padding:0 3px;height:9px;border-bottom:1px solid #f5f5f5}'
+    +'.cell:last-child{border-bottom:none}'
+    +'.cb{font-size:8px;line-height:1;flex-shrink:0}'
+    +'.cb.f{color:#000}'
+    +'.cd{font-size:6.5px;font-weight:bold;letter-spacing:-.2px}'
+    +'.print-btn{display:block;margin:6px auto 0;padding:6px 20px;background:#000;color:#fff;border:none;font-size:11px;cursor:pointer;border-radius:3px}'
+    +'@media print{.print-btn{display:none}}'
+    +'</style></head><body>'
+    +'<h1>⚽ Mundial 2026 — '+nombre+'</h1>'
+    +'<div class="sub">'+new Date().toLocaleDateString('es-AR')+' &nbsp;|&nbsp; '+totalHave+'/'+TOTAL+' tengo &nbsp;|&nbsp; '+totalMiss+' faltan</div>'
+    +'<div class="leg"><span>&#9744; Falta</span><span>&#9745; Tengo</span></div>'
+    +'<div class="grid">'
+    +fwcBlock
+    +groupBlocks
+    +'</div>'
+    +'<button class="print-btn" onclick="window.print()">🖨️ Imprimir</button>'
+    +'</body></html>';
 
   var win=window.open('','_blank');
   win.document.write(html);
