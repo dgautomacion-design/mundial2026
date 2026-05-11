@@ -545,77 +545,68 @@ function doLogout(){if(!confirm('¿Cerrar sesión?'))return;localStorage.removeI
 function printList() {
   const nombre = session?.nombre || 'Mi álbum';
   let totalHave=0,totalMiss=0;
-  for(const k of ALL_KEYS){const v=gv(k);if(v>=1)totalHave++;else totalMiss++;}
+  for(const k of ALL_KEYS){if(gv(k)>=1)totalHave++;else totalMiss++;}
 
-  // ── FWC block ──
-  var fwcCells='';
-  for(var fi=0;fi<FWC_LIST.length;fi++){
-    var f=FWC_LIST[fi],have=gv(f.id)>=1;
-    fwcCells+='<div class="cell">'+(have?'<span class="cb f">&#9745;</span>':'<span class="cb">&#9744;</span>')
-      +'<span class="cd">'+f.id+'</span></div>';
+  function buildTeamCol(tid){
+    var t2=TEAMS[tid];
+    var h='<div class="th">'+t2.f+' <b>'+tid+'</b></div>';
+    for(var si=1;si<=20;si++){
+      var have=gv(tid+si)>=1;
+      var lbl=si===1?tid+'-E':tid+si;
+      h+='<div class="c">'+(have?'&#9745;':'&#9744;')+' '+lbl+'</div>';
+    }
+    return '<div class="col">'+h+'</div>';
   }
-  var fwcBlock='<div class="gblock">'
-    +'<div class="gtitle" style="background:#333">🏆 FWC ESPECIALES</div>'
-    +'<div class="tcols" style="grid-template-columns:repeat(4,1fr)">'
-    +'<div class="tcol"><div class="cells">'+fwcCells+'</div></div>'
-    +'</div></div>';
 
-  // ── Group blocks ──
+  function buildFWCCol(){
+    var h='<div class="th">&#127942; FWC</div>';
+    for(var fi=0;fi<FWC_LIST.length;fi++){
+      var f=FWC_LIST[fi],have=gv(f.id)>=1;
+      h+='<div class="c">'+(have?'&#9745;':'&#9744;')+' '+f.id+'</div>';
+    }
+    return '<div class="col">'+h+'</div>';
+  }
+
+  // FWC block (20 items, use 1 col)
+  var fwcBlock='<div class="gb"><div class="gt" style="background:#333">FWC ESPECIALES</div>'
+    +'<div class="cols">'+buildFWCCol()+'<div class="col"></div><div class="col"></div><div class="col"></div></div></div>';
+
   var groupBlocks='';
   var gkeys=Object.keys(GROUPS);
   for(var gi=0;gi<gkeys.length;gi++){
     var gid2=gkeys[gi],grp2=GROUPS[gid2];
     var cols='';
-    for(var ti=0;ti<grp2.t.length;ti++){
-      var tid2=grp2.t[ti],t2=TEAMS[tid2];
-      var cells='<div class="thead">'+t2.f+' <b>'+tid2+'</b></div>';
-      for(var si=1;si<=20;si++){
-        var have2=gv(tid2+si)>=1;
-        var lbl=si===1?tid2+'-E':tid2+si;
-        cells+='<div class="cell">'+(have2?'<span class="cb f">&#9745;</span>':'<span class="cb">&#9744;</span>')
-          +'<span class="cd">'+lbl+'</span></div>';
-      }
-      cols+='<div class="tcol"><div class="cells">'+cells+'</div></div>';
-    }
-    groupBlocks+='<div class="gblock">'
-      +'<div class="gtitle" style="background:'+grp2.c+'">GRUPO '+gid2+'</div>'
-      +'<div class="tcols">'+cols+'</div>'
-      +'</div>';
+    for(var ti=0;ti<grp2.t.length;ti++) cols+=buildTeamCol(grp2.t[ti]);
+    groupBlocks+='<div class="gb"><div class="gt" style="background:'+grp2.c+'">GRUPO '+gid2+'</div>'
+      +'<div class="cols">'+cols+'</div></div>';
   }
+
+  var css='@page{size:A4;margin:5mm}'
+    +'*{box-sizing:border-box;margin:0;padding:0}'
+    +'body{font-family:Arial Narrow,Arial,sans-serif;font-size:6px;color:#000;background:#fff}'
+    +'h1{font-size:9px;font-weight:bold;text-align:center}'
+    +'.sub{font-size:6px;text-align:center;color:#444;margin-bottom:2px}'
+    +'.leg{display:flex;gap:8px;justify-content:center;font-size:6px;margin-bottom:2px}'
+    +'.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:2px}'
+    +'.gb{border:1px solid #bbb;border-radius:1px;overflow:hidden}'
+    +'.gt{color:#fff;font-weight:bold;font-size:6px;padding:1px 3px;letter-spacing:.3px}'
+    +'.cols{display:grid;grid-template-columns:repeat(4,1fr)}'
+    +'.col{border-left:1px solid #e0e0e0}'
+    +'.col:first-child{border-left:none}'
+    +'.th{font-size:6px;font-weight:bold;padding:1px 2px;background:#f0f0f0;border-bottom:1px solid #ddd;white-space:nowrap}'
+    +'.c{font-size:5.8px;font-weight:bold;padding:0 2px;line-height:1.35;border-bottom:1px solid #f8f8f8;white-space:nowrap}'
+    +'.c:last-child{border-bottom:none}'
+    +'.print-btn{display:block;margin:4px auto 0;padding:4px 16px;background:#000;color:#fff;border:none;font-size:10px;cursor:pointer;border-radius:3px}'
+    +'@media print{.print-btn{display:none}}';
 
   var html='<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">'
     +'<title>Mundial 2026 - '+nombre+'</title>'
-    +'<style>'
-    +'@page{size:A4;margin:6mm}'
-    +'*{box-sizing:border-box;margin:0;padding:0}'
-    +'body{font-family:Arial Narrow,Arial,sans-serif;font-size:7.5px;color:#000;background:#fff}'
-    +'h1{font-size:11px;font-weight:bold;text-align:center;margin-bottom:1px}'
-    +'.sub{font-size:7px;text-align:center;color:#444;margin-bottom:3px}'
-    +'.leg{display:flex;gap:8px;justify-content:center;font-size:7px;margin-bottom:4px}'
-    +'.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:3px}'
-    +'.gblock{border:1px solid #ccc;border-radius:2px;overflow:hidden}'
-    +'.gtitle{color:#fff;font-weight:bold;font-size:7px;padding:2px 4px;letter-spacing:.5px}'
-    +'.tcols{display:grid;grid-template-columns:repeat(4,1fr);gap:0}'
-    +'.tcol{border-left:1px solid #eee}'
-    +'.tcol:first-child{border-left:none}'
-    +'.thead{font-size:7px;font-weight:bold;padding:2px 3px;background:#f0f0f0;border-bottom:1px solid #ddd}'
-    +'.cells{display:flex;flex-direction:column}'
-    +'.cell{display:flex;align-items:center;gap:2px;padding:0 3px;height:9px;border-bottom:1px solid #f5f5f5}'
-    +'.cell:last-child{border-bottom:none}'
-    +'.cb{font-size:8px;line-height:1;flex-shrink:0}'
-    +'.cb.f{color:#000}'
-    +'.cd{font-size:6.5px;font-weight:bold;letter-spacing:-.2px}'
-    +'.print-btn{display:block;margin:6px auto 0;padding:6px 20px;background:#000;color:#fff;border:none;font-size:11px;cursor:pointer;border-radius:3px}'
-    +'@media print{.print-btn{display:none}}'
-    +'</style></head><body>'
-    +'<h1>⚽ Mundial 2026 — '+nombre+'</h1>'
-    +'<div class="sub">'+new Date().toLocaleDateString('es-AR')+' &nbsp;|&nbsp; '+totalHave+'/'+TOTAL+' tengo &nbsp;|&nbsp; '+totalMiss+' faltan</div>'
+    +'<style>'+css+'</style></head><body>'
+    +'<h1>&#9917; Mundial 2026 — '+nombre+'</h1>'
+    +'<div class="sub">'+new Date().toLocaleDateString('es-AR')+' | '+totalHave+'/'+TOTAL+' tengo | '+totalMiss+' faltan</div>'
     +'<div class="leg"><span>&#9744; Falta</span><span>&#9745; Tengo</span></div>'
-    +'<div class="grid">'
-    +fwcBlock
-    +groupBlocks
-    +'</div>'
-    +'<button class="print-btn" onclick="window.print()">🖨️ Imprimir</button>'
+    +'<div class="grid">'+fwcBlock+groupBlocks+'</div>'
+    +'<button class="print-btn" onclick="window.print()">&#128424; Imprimir</button>'
     +'</body></html>';
 
   var win=window.open('','_blank');
