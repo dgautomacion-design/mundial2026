@@ -377,6 +377,8 @@ function gotoGroups(restoreGroup){
   screen('Groups');renderGroups();
   const fs=fStats(),fp=Math.round(fs.h/FWC_LIST.length*100);
   $id('fwcFill').style.width=fp+'%';$id('fwcH').textContent='✓ '+fs.h;$id('fwcR').textContent='★ '+fs.r;$id('fwcM').textContent='✗ '+fs.m;
+  // update fwc counter
+  const fwcCnt=$id('fwcCount');if(fwcCnt)fwcCnt.textContent=fs.h+'/'+FWC_LIST.length;
   // Restaurar grupo expandido
   const gid=restoreGroup||curGroup;
   if(gid&&GROUPS[gid]){
@@ -393,7 +395,8 @@ function renderGroups(){
     const pct=Math.round(tot/(grp.t.length*20)*100);
     const row=document.createElement('div');
     row.className='grp-row';row.style.cssText=`border-color:${grp.c};background:${grp.c}12`;row.dataset.gid=gid;
-    row.innerHTML=`<div class="grp-lbl" style="color:${grp.c}">GRP ${gid}</div><div class="grp-mid"><div class="grp-flags">${grp.t.map(t=>TEAMS[t].f).join(' ')}</div><div class="grp-names">${grp.t.map(t=>TEAMS[t].n.split(' ')[0]).join(' · ')}</div><div class="grp-mini"><div class="grp-mini-fill" style="width:${pct}%;background:${grp.c}"></div></div></div><div class="grp-pct">${pct}%</div>`;
+    const gtot=grp.t.length*20;
+    row.innerHTML=`<div class="grp-lbl" style="color:${grp.c}">GRP ${gid}</div><div class="grp-mid"><div class="grp-flags">${grp.t.map(t=>TEAMS[t].f).join(' ')}</div><div class="grp-names">${grp.t.map(t=>TEAMS[t].n.split(' ')[0]).join(' · ')}</div><div class="grp-mini"><div class="grp-mini-fill" style="width:${pct}%;background:${grp.c}"></div></div></div><div class="grp-pct">${tot}/${gtot}</div>`;
     row.onclick=()=>toggleGroup(gid,row,grp);
     list.appendChild(row);
   }
@@ -410,7 +413,7 @@ function toggleGroup(gid,row,grp){
     const t=TEAMS[tid],s=tStats(tid),pct=Math.round(s.h/20*100),full=s.m===0&&s.r===0&&s.h===20;
     const card=document.createElement('div');card.className='team-card';
     if(full)card.style.cssText='border-color:rgba(0,232,135,.3);background:rgba(0,232,135,.06)';
-    card.innerHTML=`<div class="tf">${t.f}</div><div class="ti"><div class="tn">${t.n}</div><div class="ts2">Pág.${t.p} · 20 figuritas</div><div class="tbar"><div class="tbar-f" style="width:${pct}%;background:${full?'var(--green)':grp.c}"></div></div><div class="tcnts"><span class="tg">✓ ${s.h}</span><span class="to">★ ${s.r}</span><span class="tr">✗ ${s.m}</span></div></div>${full?'<span class="cbadge">COMPLETO</span>':'<div class="ta">›</div>'}`;
+    card.innerHTML=`<div class="tf" style="font-size:13px;font-family:var(--fh);font-weight:900;color:var(--text2);min-width:42px;text-align:center">${tid}</div><div class="ti"><div class="tn">${t.n}</div><div class="ts2">Pág.${t.p} · 20 figuritas</div><div class="tbar"><div class="tbar-f" style="width:${pct}%;background:${full?'var(--green)':grp.c}"></div></div><div class="tcnts"><span class="tg">✓ ${s.h}</span><span class="to">★ ${s.r}</span><span class="tr">✗ ${s.m}</span></div></div>${full?'<span class="cbadge">COMPLETO</span>':`<div style="font-family:var(--fh);font-size:13px;font-weight:700;color:var(--text2);white-space:nowrap">${s.h}/20</div>`}`;
     card.onclick=()=>gotoTeam(tid);exp.appendChild(card);
   }
   row.after(exp);
@@ -423,16 +426,16 @@ function gotoTeam(tid){
   const gc=ge?ge[1].c:'#fff',gid=ge?ge[0]:'?';
   curGroup=gid;
   const s=tStats(tid),pct=Math.round(s.h/20*100);
+  screen('Team');
   $id('detHdr').innerHTML=`<div style="display:flex;gap:14px;align-items:flex-start"><div class="det-flag">${t.f}</div><div style="flex:1"><div class="det-name">${t.n}</div><div class="det-meta">Grupo ${gid} · Pág.${t.p} · 20 figuritas</div><div style="display:flex;gap:7px;align-items:center;margin-top:9px"><div style="flex:1;height:5px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden"><div id="detFill" style="height:100%;width:${pct}%;background:${gc};border-radius:3px;transition:width .4s"></div></div><span style="font-family:var(--fh);font-weight:700;color:${gc}">${pct}%</span></div><div class="tcnts" style="margin-top:4px"><span class="tg">✓ ${s.h}</span><span class="to">★ ${s.r}</span><span class="tr">✗ ${s.m}</span></div></div></div><div class="det-acts"><button class="act act-g" onclick="allTeam('${tid}',1)">✅ Todas</button><button class="act act-r" onclick="allTeam('${tid}',0)">🗑 Limpiar</button></div>`;
   renderGrid(tid);
   // Actualizar botones
   const backBtn=$id('backFromTeam');
   if(backBtn)backBtn.textContent='← Grupo '+gid;
-  const idx=TEAM_IDS.indexOf(tid);
+  const tidx=TEAM_IDS.indexOf(tid);
   const prevBtn=$id('btnPrev'),nextBtn=$id('btnNext');
-  if(prevBtn){prevBtn.style.opacity=idx===0?'0.3':'1';prevBtn.style.pointerEvents=idx===0?'none':'auto';}
-  if(nextBtn){nextBtn.style.opacity=idx===TEAM_IDS.length-1?'0.3':'1';nextBtn.style.pointerEvents=idx===TEAM_IDS.length-1?'none':'auto';}
-  screen('Team');
+  if(prevBtn){prevBtn.style.opacity=tidx===0?'0.3':'1';prevBtn.style.pointerEvents=tidx===0?'none':'auto';}
+  if(nextBtn){nextBtn.style.opacity=tidx===TEAM_IDS.length-1?'0.3':'1';nextBtn.style.pointerEvents=tidx===TEAM_IDS.length-1?'none':'auto';}
 }
 
 function gotoAdjacentTeam(dir){
