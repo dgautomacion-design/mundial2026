@@ -432,7 +432,24 @@ function gotoTeam(tid){
   curGroup=gid;
   const s=tStats(tid),pct=Math.round(s.h/20*100);
   screen('Team');
-  $id('detHdr').innerHTML=`<div style="display:flex;gap:14px;align-items:flex-start"><div class="det-flag">${t.f}</div><div style="flex:1"><div class="det-name">${t.n}</div><div class="det-meta">Grupo ${gid} · Pág.${t.p} · 20 figuritas</div><div style="display:flex;gap:7px;align-items:center;margin-top:9px"><div style="flex:1;height:5px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden"><div id="detFill" style="height:100%;width:${pct}%;background:${gc};border-radius:3px;transition:width .4s"></div></div><span style="font-family:var(--fh);font-weight:700;color:${gc}">${pct}%</span></div><div class="tcnts" style="margin-top:4px"><span class="tg">✓ ${s.h}</span><span class="to">★ ${s.r}</span><span class="tr">✗ ${s.m}</span></div></div></div><div class="det-acts"><button class="act act-g" onclick="allTeam('${tid}',1)">✅ Todas</button><button class="act act-r" onclick="allTeam('${tid}',0)">🗑 Limpiar</button></div>`;
+  $id('detHdr').innerHTML=`<div style="display:flex;gap:14px;align-items:flex-start">
+    <div style="text-align:center;flex-shrink:0">
+      <div style="font-size:48px;line-height:1">${t.f}</div>
+      <div style="font-family:var(--fh);font-size:13px;font-weight:900;color:var(--text2);margin-top:4px;letter-spacing:1px">${tid}</div>
+    </div>
+    <div style="flex:1">
+      <div class="det-name">${t.n}</div>
+      <div class="det-meta">Grupo ${gid} · Pág.${t.p} · 20 figuritas</div>
+      <div style="display:flex;gap:7px;align-items:center;margin-top:9px">
+        <div style="flex:1;height:5px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden">
+          <div id="detFill" style="height:100%;width:${pct}%;background:${gc};border-radius:3px;transition:width .4s"></div>
+        </div>
+        <span style="font-family:var(--fh);font-weight:700;color:${gc}">${s.h}/20</span>
+      </div>
+      <div class="tcnts" style="margin-top:4px"><span class="tg">✓ ${s.h}</span><span class="to">★ ${s.r}</span><span class="tr">✗ ${s.m}</span></div>
+    </div>
+  </div>
+  <div class="det-acts"><button class="act act-g" onclick="allTeam('${tid}',1)">✅ Todas</button><button class="act act-r" onclick="allTeam('${tid}',0)">🗑 Limpiar</button></div>`;
   renderGrid(tid);
   // Actualizar botones
   const backBtn=$id('backFromTeam');
