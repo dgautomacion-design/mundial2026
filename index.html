@@ -401,7 +401,20 @@ function renderGroups(){
     const row=document.createElement('div');
     row.className='grp-row';row.style.cssText=`border-color:${grp.c};background:${grp.c}12`;row.dataset.gid=gid;
     const gtot=grp.t.length*20;
-    row.innerHTML=`<div class="grp-lbl" style="color:${grp.c}">GRP ${gid}</div><div class="grp-mid"><div class="grp-flags">${grp.t.map(t=>TEAMS[t].f).join(' ')}</div><div class="grp-names">${grp.t.map(t=>TEAMS[t].n.split(' ')[0]).join(' · ')}</div><div class="grp-mini"><div class="grp-mini-fill" style="width:${pct}%;background:${grp.c}"></div></div></div><div class="grp-pct">${tot}/${gtot}</div>`;
+    // Build group row safely
+    let flagsHtml='', codesHtml='';
+    for(let ti=0;ti<grp.t.length;ti++){
+      const tid2=grp.t[ti];
+      flagsHtml += (ti>0?' ':'')+TEAMS[tid2].f;
+      codesHtml += (ti>0?' · ':'')+`<b>${tid2}</b>`;
+    }
+    row.innerHTML='<div class="grp-lbl" style="color:'+grp.c+'">GRP '+gid+'</div>'
+      +'<div class="grp-mid">'
+      +'<div class="grp-flags">'+flagsHtml+'</div>'
+      +'<div class="grp-names" style="font-family:var(--fh);font-size:11px;letter-spacing:.5px">'+codesHtml+'</div>'
+      +'<div class="grp-mini"><div class="grp-mini-fill" style="width:'+pct+'%;background:'+grp.c+'"></div></div>'
+      +'</div>'
+      +'<div class="grp-pct">'+tot+'/'+gtot+'</div>';
     row.onclick=()=>toggleGroup(gid,row,grp);
     list.appendChild(row);
   }
