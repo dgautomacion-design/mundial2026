@@ -117,7 +117,7 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:-1;bac
 .chip-o{background:rgba(255,124,58,.12);color:var(--orange);border:1px solid rgba(255,124,58,.25)}
 .chip-g{background:rgba(0,232,135,.1);color:var(--green);border:1px solid rgba(0,232,135,.22)}
 /* NAV */
-#nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:rgba(8,9,15,.95);backdrop-filter:blur(14px);border-top:1px solid var(--bord);display:none;grid-template-columns:repeat(4,1fr);padding:7px 0 max(7px,env(safe-area-inset-bottom));z-index:40}
+#nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:rgba(8,9,15,.95);backdrop-filter:blur(14px);border-top:1px solid var(--bord);display:none;grid-template-columns:repeat(5,1fr);padding:7px 0 max(7px,env(safe-area-inset-bottom));z-index:40}
 #nav.on{display:grid}
 .nv{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px;color:var(--muted);font-size:10px;font-weight:600;letter-spacing:.5px;text-transform:uppercase}
 .nv.active{color:var(--gold)}
@@ -255,16 +255,148 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:-1;bac
   <button class="logout-btn" style="margin-top:0" onclick="doLogout()">🚪 CERRAR SESIÓN</button>
 </div>
 
+<div class="screen" id="screenRanking">
+  <div class="sec-lbl">🏆 RANKING DEL GRUPO</div>
+  <div id="rankList"></div>
+</div>
+
+<div class="screen" id="screenRanking">
+  <div class="sec-lbl">🏆 RANKING DEL GRUPO</div>
+  <div id="rankList"></div>
+</div>
+
 <nav id="nav">
-  <button class="nv active" id="nAlbum" onclick="navTo('groups')"><span class="nv-ic">📋</span>Álbum</button>
-  <button class="nv" id="nSwaps" onclick="navTo('swaps')"><span class="nv-ic">🔄</span>Cambios</button>
-  <button class="nv" id="nUser"  onclick="navTo('user')"><span class="nv-ic">👤</span><span id="nUserLbl">Yo</span></button>
-  <button class="nv" id="nConf"  onclick="navTo('config')"><span class="nv-ic">⚙️</span>Config</button>
+  <button class="nv active" id="nAlbum"   onclick="navTo('groups')"><span class="nv-ic">📋</span>Álbum</button>
+  <button class="nv"        id="nSwaps"   onclick="navTo('swaps')"><span class="nv-ic">🔄</span>Cambios</button>
+  <button class="nv"        id="nRanking" onclick="navTo('ranking')"><span class="nv-ic">🏆</span>Ranking</button>
+  <button class="nv"        id="nUser"    onclick="navTo('user')"><span class="nv-ic">👤</span><span id="nUserLbl">Yo</span></button>
+  <button class="nv"        id="nConf"    onclick="navTo('config')"><span class="nv-ic">⚙️</span>Config</button>
 </nav>
 </div>
 
 <script>
 'use strict';
+// ─── RANKING ──────────────────────────────────────────────────
+function gotoRanking(){
+  screen('Ranking');
+  renderRanking();
+}
+
+function renderRanking(){
+  const list=$id('rankList');
+  list.innerHTML='';
+  const mn=session?.nombre||'';
+
+  if(!allNames.length){
+    list.innerHTML='<div style="color:var(--text2);font-size:13px;padding:10px 0">No hay datos del grupo todavía.</div>';
+    return;
+  }
+
+  // Calcular stats de cada usuario
+  const stats=allNames.map(name=>{
+    let have=0,rep=0,miss=0;
+    for(const k of ALL_KEYS){
+      const v=(name===mn?gv(k):(allData[k]?.[name]||0));
+      if(v===0) miss++;
+      else { have++; if(v>=2) rep+=(v-1); }
+    }
+    const pct=Math.round(have/TOTAL*100);
+    return {name,have,rep,miss,pct};
+  });
+
+  // Ordenar por figuritas tengo (mayor primero)
+  stats.sort((a,b)=>b.have-a.have);
+
+  const medals=['🥇','🥈','🥉'];
+  const maxHave=stats[0]?.have||1;
+
+  stats.forEach((s,idx)=>{
+    const isMe=s.name===mn;
+    const medal=idx<3?medals[idx]:''+(idx+1)+'.';
+    const barW=Math.round((s.have/TOTAL)*100);
+
+    const card=document.createElement('div');
+    card.style.cssText='background:'+(isMe?'rgba(0,232,135,.08)':'rgba(255,255,255,.04)')
+      +';border:1px solid '+(isMe?'rgba(0,232,135,.3)':'rgba(255,255,255,.08)')
+      +';border-radius:12px;padding:12px 14px;margin-bottom:8px';
+
+    card.innerHTML=
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">'
+        +'<span style="font-family:var(--fh);font-size:20px;font-weight:900;min-width:32px">'+medal+'</span>'
+        +'<div style="flex:1">'
+          +'<div style="font-family:var(--fh);font-size:18px;font-weight:900;color:'+(isMe?'var(--green)':'var(--text)')+'">'+s.name+(isMe?' (vos)':'')+'</div>'
+          +'<div style="font-size:11px;color:var(--text2);margin-top:1px">'
+            +'✓ '+s.have+' tengo &nbsp;·&nbsp; ⭐ '+s.rep+' repetidas &nbsp;·&nbsp; ✗ '+s.miss+' faltan'
+          +'</div>'
+        +'</div>'
+        +'<div style="text-align:right">'
+          +'<div style="font-family:var(--fh);font-size:22px;font-weight:900;color:'+(isMe?'var(--green)':'var(--gold)')+'">'+s.pct+'%</div>'
+          +'<div style="font-size:10px;color:var(--text2)">'+s.have+'/'+TOTAL+'</div>'
+        +'</div>'
+      +'</div>'
+      +'<div style="height:6px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden">'
+        +'<div style="height:100%;width:'+barW+'%;background:'+(isMe?'var(--green)':'linear-gradient(90deg,var(--gold),#ff8c00)')+';border-radius:3px;transition:width .5s"></div>'
+      +'</div>';
+
+    list.appendChild(card);
+  });
+}
+
+// ─── RANKING ──────────────────────────────────────────────────
+function gotoRanking(){
+  screen('Ranking');
+  renderRanking();
+}
+
+function renderRanking(){
+  const list=$id('rankList');
+  list.innerHTML='';
+  const mn=session?.nombre||'';
+
+  if(!allNames.length){
+    list.innerHTML='<div style="color:var(--text2);font-size:13px;padding:10px 0">No hay datos del grupo todavía.</div>';
+    return;
+  }
+
+  const stats=allNames.map(name=>{
+    let have=0,rep=0,miss=0;
+    for(const k of ALL_KEYS){
+      const v=(name===mn?gv(k):(allData[k]?.[name]||0));
+      if(v===0) miss++;
+      else{have++;if(v>=2)rep+=(v-1);}
+    }
+    return {name,have,rep,miss,pct:Math.round(have/TOTAL*100)};
+  });
+
+  stats.sort((a,b)=>b.have-a.have);
+  const medals=['🥇','🥈','🥉'];
+
+  stats.forEach((s,idx)=>{
+    const isMe=s.name===mn;
+    const medal=idx<3?medals[idx]:(idx+1)+'.';
+    const card=document.createElement('div');
+    card.style.cssText='background:'+(isMe?'rgba(0,232,135,.08)':'rgba(255,255,255,.04)')
+      +';border:1px solid '+(isMe?'rgba(0,232,135,.3)':'rgba(255,255,255,.08)')
+      +';border-radius:12px;padding:12px 14px;margin-bottom:8px';
+    card.innerHTML=
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">'
+        +'<span style="font-family:var(--fh);font-size:20px;font-weight:900;min-width:32px">'+medal+'</span>'
+        +'<div style="flex:1">'
+          +'<div style="font-family:var(--fh);font-size:18px;font-weight:900;color:'+(isMe?'var(--green)':'var(--text)')+'">'+s.name+(isMe?' 👈':'')+'</div>'
+          +'<div style="font-size:11px;color:var(--text2);margin-top:2px">✓ '+s.have+' &nbsp;⭐ '+s.rep+' repet. &nbsp;✗ '+s.miss+' faltan</div>'
+        +'</div>'
+        +'<div style="text-align:right;flex-shrink:0">'
+          +'<div style="font-family:var(--fh);font-size:22px;font-weight:900;color:'+(isMe?'var(--green)':'var(--gold)')+'">'+s.pct+'%</div>'
+          +'<div style="font-size:10px;color:var(--text2)">'+s.have+'/'+TOTAL+'</div>'
+        +'</div>'
+      +'</div>'
+      +'<div style="height:6px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden">'
+        +'<div style="height:100%;width:'+s.pct+'%;background:'+(isMe?'var(--green)':'linear-gradient(90deg,var(--gold),#ff8c00)')+';border-radius:3px"></div>'
+      +'</div>';
+    list.appendChild(card);
+  });
+}
+
 // ─── CONFIG ───────────────────────────────────────────────────
 const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxtDyIAJzsUx8LAT_dPURWfadH2NpFVfdm7BK8ayxCy_slW3eCyXsXQzht4cg3VCvJ7xw/exec';
 
@@ -391,10 +523,13 @@ function showMainUI(){
 
 // ─── NAV ──────────────────────────────────────────────────────
 function navTo(view){
-  ['nAlbum','nSwaps','nUser','nConf'].forEach(id=>$id(id).classList.remove('active'));
+  ['nAlbum','nSwaps','nRanking','nUser','nConf'].forEach(id=>$id(id).classList.remove('active'));
   if(view==='groups'){$id('nAlbum').classList.add('active');gotoGroups(curGroup);}
   else if(view==='swaps'){$id('nSwaps').classList.add('active');gotoSwaps();}
   else if(view==='user'){$id('nUser').classList.add('active');gotoGroups(curGroup);}
+  else if(view==='ranking'){$id('nRanking').classList.add('active');gotoRanking();}
+  else if(view==='ranking'){$id('nRanking').classList.add('active');gotoRanking();}
+  else if(view==='ranking'){$id('nRanking').classList.add('active');gotoRanking();}
   else if(view==='config'){$id('nConf').classList.add('active');gotoConfig();}
 }
 
@@ -591,18 +726,33 @@ function showSwapWith(otherName){
   meEl.innerHTML='';
   themEl.innerHTML='';
 
+  // Resumen de totales
+  const totalGive=iCanGive.reduce((s,k)=>s+(gv(k)-1),0);
+  const totalGet=iCanGet.reduce((s,k)=>s+((allData[k]?.[otherName]||0)-1),0);
+
   // Columna MIA — lo que yo doy
   if(!iCanGive.length){
     meEl.innerHTML='<div style="color:var(--text2);font-size:12px;padding:8px;text-align:center">No tenés repetidas<br>que le falten a '+otherName+'</div>';
   } else {
+    // Resumen arriba
+    const sumMe=document.createElement('div');
+    sumMe.style.cssText='background:rgba(0,232,135,.1);border:1px solid rgba(0,232,135,.2);border-radius:8px;padding:7px 10px;margin-bottom:8px;font-family:var(--fh);font-size:13px;color:var(--green);text-align:center';
+    sumMe.innerHTML='Podés dar <b>'+totalGive+'</b> figurita'+(totalGive!==1?'s':'');
+    meEl.appendChild(sumMe);
+
     iCanGive.forEach(k=>{
       const v=gv(k);
+      const cant=v-1;
       const d=document.createElement('div');
-      d.className='swap-card';
-      d.style.marginBottom='5px';
-      d.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center">'
-        +'<div><div class="swap-code">'+k+'</div><div class="swap-desc">'+kLabel(k)+'</div></div>'
-        +'<span style="color:var(--orange);font-family:var(--fh);font-size:13px;font-weight:900">+'+(v-1)+'</span>'
+      d.style.cssText='display:flex;align-items:center;gap:8px;padding:6px 10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;margin-bottom:5px';
+      d.innerHTML=
+        '<div style="flex:1">'
+          +'<div style="font-family:var(--fh);font-size:14px;font-weight:900;color:var(--gold)">'+k+'</div>'
+          +'<div style="font-size:10px;color:var(--text2)">'+kLabel(k)+'</div>'
+        +'</div>'
+        +'<div style="background:rgba(0,232,135,.15);border:1px solid rgba(0,232,135,.3);border-radius:6px;padding:4px 8px;text-align:center;min-width:36px">'
+          +'<div style="font-family:var(--fh);font-size:16px;font-weight:900;color:var(--green);line-height:1">'+cant+'</div>'
+          +'<div style="font-size:8px;color:var(--green)">doy</div>'
         +'</div>';
       meEl.appendChild(d);
     });
@@ -612,18 +762,184 @@ function showSwapWith(otherName){
   if(!iCanGet.length){
     themEl.innerHTML='<div style="color:var(--text2);font-size:12px;padding:8px;text-align:center">'+otherName+' no tiene<br>repetidas que te falten</div>';
   } else {
+    // Resumen arriba
+    const sumThem=document.createElement('div');
+    sumThem.style.cssText='background:rgba(0,229,255,.1);border:1px solid rgba(0,229,255,.2);border-radius:8px;padding:7px 10px;margin-bottom:8px;font-family:var(--fh);font-size:13px;color:#00e5ff;text-align:center';
+    sumThem.innerHTML='Podés recibir <b>'+totalGet+'</b> figurita'+(totalGet!==1?'s':'');
+    themEl.appendChild(sumThem);
+
     iCanGet.forEach(k=>{
       const vOther=allData[k]?.[otherName]||0;
+      const cant=vOther-1;
       const d=document.createElement('div');
-      d.className='swap-card';
-      d.style.marginBottom='5px';
-      d.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center">'
-        +'<div><div class="swap-code">'+k+'</div><div class="swap-desc">'+kLabel(k)+'</div></div>'
-        +'<span style="color:var(--orange);font-family:var(--fh);font-size:13px;font-weight:900">+'+(vOther-1)+'</span>'
+      d.style.cssText='display:flex;align-items:center;gap:8px;padding:6px 10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;margin-bottom:5px';
+      d.innerHTML=
+        '<div style="flex:1">'
+          +'<div style="font-family:var(--fh);font-size:14px;font-weight:900;color:var(--gold)">'+k+'</div>'
+          +'<div style="font-size:10px;color:var(--text2)">'+kLabel(k)+'</div>'
+        +'</div>'
+        +'<div style="background:rgba(0,229,255,.1);border:1px solid rgba(0,229,255,.25);border-radius:6px;padding:4px 8px;text-align:center;min-width:36px">'
+          +'<div style="font-family:var(--fh);font-size:16px;font-weight:900;color:#00e5ff;line-height:1">'+cant+'</div>'
+          +'<div style="font-size:8px;color:#00e5ff">recibo</div>'
         +'</div>';
       themEl.appendChild(d);
     });
   }
+}
+
+// ─── RANKING ──────────────────────────────────────────────────
+function gotoRanking(){
+  screen('Ranking');
+  renderRanking();
+}
+
+function renderRanking(){
+  const list=$id('rankList');
+  list.innerHTML='';
+  const mn=session?.nombre||'';
+
+  if(!allNames.length){
+    list.innerHTML='<div style="color:var(--text2);font-size:13px;padding:10px 0">No hay datos del grupo todavía.</div>';
+    return;
+  }
+
+  // Calcular stats de cada usuario
+  const stats=allNames.map(name=>{
+    let have=0,rep=0,miss=0;
+    for(const k of ALL_KEYS){
+      const v=(name===mn?gv(k):(allData[k]?.[name]||0));
+      if(v===0) miss++;
+      else { have++; if(v>=2) rep+=(v-1); }
+    }
+    const pct=Math.round(have/TOTAL*100);
+    return {name,have,rep,miss,pct};
+  });
+
+  // Ordenar por figuritas tengo (mayor primero)
+  stats.sort((a,b)=>b.have-a.have);
+
+  const medals=['🥇','🥈','🥉'];
+  const maxHave=stats[0]?.have||1;
+
+  stats.forEach((s,idx)=>{
+    const isMe=s.name===mn;
+    const medal=idx<3?medals[idx]:''+(idx+1)+'.';
+    const barW=Math.round((s.have/TOTAL)*100);
+
+    const card=document.createElement('div');
+    card.style.cssText='background:'+(isMe?'rgba(0,232,135,.08)':'rgba(255,255,255,.04)')
+      +';border:1px solid '+(isMe?'rgba(0,232,135,.3)':'rgba(255,255,255,.08)')
+      +';border-radius:12px;padding:12px 14px;margin-bottom:8px';
+
+    card.innerHTML=
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">'
+        +'<span style="font-family:var(--fh);font-size:20px;font-weight:900;min-width:32px">'+medal+'</span>'
+        +'<div style="flex:1">'
+          +'<div style="font-family:var(--fh);font-size:18px;font-weight:900;color:'+(isMe?'var(--green)':'var(--text)')+'">'+s.name+(isMe?' (vos)':'')+'</div>'
+          +'<div style="font-size:11px;color:var(--text2);margin-top:1px">'
+            +'✓ '+s.have+' tengo &nbsp;·&nbsp; ⭐ '+s.rep+' repetidas &nbsp;·&nbsp; ✗ '+s.miss+' faltan'
+          +'</div>'
+        +'</div>'
+        +'<div style="text-align:right">'
+          +'<div style="font-family:var(--fh);font-size:22px;font-weight:900;color:'+(isMe?'var(--green)':'var(--gold)')+'">'+s.pct+'%</div>'
+          +'<div style="font-size:10px;color:var(--text2)">'+s.have+'/'+TOTAL+'</div>'
+        +'</div>'
+      +'</div>'
+      +'<div style="height:6px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden">'
+        +'<div style="height:100%;width:'+barW+'%;background:'+(isMe?'var(--green)':'linear-gradient(90deg,var(--gold),#ff8c00)')+';border-radius:3px;transition:width .5s"></div>'
+      +'</div>';
+
+    list.appendChild(card);
+  });
+}
+
+// ─── RANKING ──────────────────────────────────────────────────
+function gotoRanking(){
+  screen('Ranking');
+  renderRanking();
+}
+
+function renderRanking(){
+  const list=$id('rankList');
+  list.innerHTML='';
+  const mn=session?.nombre||'';
+
+  if(!allNames.length){
+    list.innerHTML='<div style="color:var(--text2);font-size:13px;padding:10px 0">No hay datos del grupo todavía.</div>';
+    return;
+  }
+
+  const stats=allNames.map(name=>{
+    let have=0,rep=0,miss=0;
+    for(const k of ALL_KEYS){
+      const v=(name===mn?gv(k):(allData[k]?.[name]||0));
+      if(v===0) miss++;
+      else{have++;if(v>=2)rep+=(v-1);}
+    }
+    return {name,have,rep,miss,pct:Math.round(have/TOTAL*100)};
+  });
+
+  stats.sort((a,b)=>b.have-a.have);
+  const medals=['🥇','🥈','🥉'];
+
+  stats.forEach((s,idx)=>{
+    const isMe=s.name===mn;
+    const medal=idx<3?medals[idx]:(idx+1)+'.';
+    const card=document.createElement('div');
+    card.style.cssText='background:'+(isMe?'rgba(0,232,135,.08)':'rgba(255,255,255,.04)')
+      +';border:1px solid '+(isMe?'rgba(0,232,135,.3)':'rgba(255,255,255,.08)')
+      +';border-radius:12px;padding:12px 14px;margin-bottom:8px';
+    card.innerHTML=
+      '<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">'
+        +'<span style="font-family:var(--fh);font-size:20px;font-weight:900;min-width:32px">'+medal+'</span>'
+        +'<div style="flex:1">'
+          +'<div style="font-family:var(--fh);font-size:18px;font-weight:900;color:'+(isMe?'var(--green)':'var(--text)')+'">'+s.name+(isMe?' 👈':'')+'</div>'
+          +'<div style="font-size:11px;color:var(--text2);margin-top:2px">✓ '+s.have+' &nbsp;⭐ '+s.rep+' repet. &nbsp;✗ '+s.miss+' faltan</div>'
+        +'</div>'
+        +'<div style="text-align:right;flex-shrink:0">'
+          +'<div style="font-family:var(--fh);font-size:22px;font-weight:900;color:'+(isMe?'var(--green)':'var(--gold)')+'">'+s.pct+'%</div>'
+          +'<div style="font-size:10px;color:var(--text2)">'+s.have+'/'+TOTAL+'</div>'
+        +'</div>'
+      +'</div>'
+      +'<div style="height:6px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden">'
+        +'<div style="height:100%;width:'+s.pct+'%;background:'+(isMe?'var(--green)':'linear-gradient(90deg,var(--gold),#ff8c00)')+';border-radius:3px"></div>'
+      +'</div>';
+    list.appendChild(card);
+  });
+}
+
+// ─── RANKING ──────────────────────────────────────────────────
+function gotoRanking(){
+  screen('Ranking');
+  renderRanking();
+}
+
+function renderRanking(){
+  const list=$id('rankList');
+  list.innerHTML='';
+  const mn=session?.nombre||'';
+  if(!allNames.length){
+    list.innerHTML='<div style="color:var(--text2);font-size:13px;padding:10px 0">No hay datos del grupo todavía.</div>';
+    return;
+  }
+  const stats=allNames.map(name=>{
+    let have=0,rep=0,miss=0;
+    for(const k of ALL_KEYS){
+      const v=(name===mn?gv(k):(allData[k]?.[name]||0));
+      if(v===0)miss++;else{have++;if(v>=2)rep+=(v-1);}
+    }
+    return{name,have,rep,miss,pct:Math.round(have/TOTAL*100)};
+  });
+  stats.sort((a,b)=>b.have-a.have);
+  const medals=['🥇','🥈','🥉'];
+  stats.forEach((s,idx)=>{
+    const isMe=s.name===mn;
+    const medal=idx<3?medals[idx]:(idx+1)+'.';
+    const card=document.createElement('div');
+    card.style.cssText='background:'+(isMe?'rgba(0,232,135,.08)':'rgba(255,255,255,.04)')+';border:1px solid '+(isMe?'rgba(0,232,135,.3)':'rgba(255,255,255,.08)')+';border-radius:12px;padding:12px 14px;margin-bottom:8px';
+    card.innerHTML='<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><span style="font-family:var(--fh);font-size:20px;font-weight:900;min-width:32px">'+medal+'</span><div style="flex:1"><div style="font-family:var(--fh);font-size:18px;font-weight:900;color:'+(isMe?'var(--green)':'var(--text)')+'">'+s.name+(isMe?' 👈':'')+'</div><div style="font-size:11px;color:var(--text2);margin-top:2px">✓ '+s.have+' &nbsp;⭐ '+s.rep+' repet. &nbsp;✗ '+s.miss+' faltan</div></div><div style="text-align:right;flex-shrink:0"><div style="font-family:var(--fh);font-size:22px;font-weight:900;color:'+(isMe?'var(--green)':'var(--gold)')+'">'+s.pct+'%</div><div style="font-size:10px;color:var(--text2)">'+s.have+'/'+TOTAL+'</div></div></div><div style="height:6px;background:rgba(255,255,255,.07);border-radius:3px;overflow:hidden"><div style="height:100%;width:'+s.pct+'%;background:'+(isMe?'var(--green)':'linear-gradient(90deg,var(--gold),#ff8c00)')+';border-radius:3px"></div></div>';
+    list.appendChild(card);
+  });
 }
 
 // ─── CONFIG ───────────────────────────────────────────────────
@@ -741,7 +1057,7 @@ function printList(mode) {
     +'.grid{display:grid;grid-template-columns:repeat(6,1fr);gap:2px}'
     +'.gb{border:1px solid #bbb;overflow:hidden}'
     +'.gt{color:#fff;font-weight:bold;font-size:8px;padding:2px 3px;letter-spacing:.3px}'
-    +'.cols{display:grid;grid-template-columns:repeat(4,1fr)}'
+    +'.cols{display:grid;grid-template-columns:repeat(5,1fr)}'
     +'.col{border-left:1px solid #e0e0e0}'
     +'.col:first-child{border-left:none}'
     +'.th{font-size:8px;font-weight:bold;padding:1px 3px;background:#f0f0f0;border-bottom:1px solid #ddd;white-space:nowrap}'
