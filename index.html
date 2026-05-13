@@ -252,6 +252,8 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:-1;bac
   <button onclick="printList('all')" style="width:100%;padding:12px;background:rgba(0,232,135,.12);color:var(--green);border:1px solid rgba(0,232,135,.25);border-radius:10px;font-family:var(--fh);font-size:15px;font-weight:700;letter-spacing:1px;margin-bottom:6px">📋 Álbum completo</button>
   <button onclick="printList('missing')" style="width:100%;padding:12px;background:rgba(0,229,255,.1);color:#00e5ff;border:1px solid rgba(0,229,255,.25);border-radius:10px;font-family:var(--fh);font-size:15px;font-weight:700;letter-spacing:1px;margin-bottom:6px">❌ Solo las que me faltan</button>
   <button onclick="printList('repeat')" style="width:100%;padding:12px;background:rgba(255,124,58,.1);color:var(--orange);border:1px solid rgba(255,124,58,.25);border-radius:10px;font-family:var(--fh);font-size:15px;font-weight:700;letter-spacing:1px;margin-bottom:8px">⭐ Solo las repetidas</button>
+  <div style="font-family:var(--fh);font-size:11px;font-weight:700;letter-spacing:2px;color:var(--text2);text-transform:uppercase;margin-bottom:8px;margin-top:4px">📥 DESCARGAR</div>
+  <button onclick="downloadExcel()" style="width:100%;padding:12px;background:rgba(33,150,243,.12);color:#64b5f6;border:1px solid rgba(33,150,243,.3);border-radius:10px;font-family:var(--fh);font-size:15px;font-weight:700;letter-spacing:1px;margin-bottom:8px">📊 Bajar Excel de mis figuritas</button>
   <button class="logout-btn" style="margin-top:0" onclick="doLogout()">🚪 CERRAR SESIÓN</button>
 </div>
 
@@ -945,6 +947,85 @@ function renderRanking(){
 // ─── CONFIG ───────────────────────────────────────────────────
 function gotoConfig(){const{h,r,m}=computeStats();$id('cfgStats').textContent=`${h} tengo · ${r} repetidas · ${m} me faltan`;screen('Config');}
 function doLogout(){if(!confirm('¿Cerrar sesión?'))return;localStorage.removeItem('m26');session=null;myData={};allData={};allNames=[];$id('screenLogin').style.display='flex';$id('topbar').style.display='none';$id('nav').classList.remove('on');screen('');$id('inpUser').value='';$id('inpPass').value='';}
+
+// ─── DOWNLOAD EXCEL ──────────────────────────────────────────
+function downloadExcel() {
+  const nombre = session?.nombre || 'Mi_album';
+
+  // Build CSV content (Excel opens CSV perfectly)
+  let rows = [];
+
+  // Header
+  rows.push(['FIGURITAS MUNDIAL 2026 - ' + nombre]);
+  rows.push([]);
+  rows.push(['Código', 'Descripción', 'Grupo', 'Estado', 'Cantidad']);
+  rows.push([]);
+
+  // Stats row
+  let totalHave=0, totalMiss=0, totalRep=0;
+  for(const k of ALL_KEYS){
+    const v=gv(k);
+    if(v>=1) totalHave++;
+    else totalMiss++;
+    if(v>=2) totalRep+=(v-1);
+  }
+  rows.push(['RESUMEN', '', '', '', '']);
+  rows.push(['Total tengo', totalHave, '', 'Total faltan', totalMiss]);
+  rows.push(['Repetidas', totalRep, '', 'Total álbum', TOTAL]);
+  rows.push([]);
+
+  // FWC especiales
+  rows.push(['── FWC ESPECIALES ──', '', '', '', '']);
+  for(var fi=0;fi<FWC_LIST.length;fi++){
+    var f=FWC_LIST[fi], v=gv(f.id);
+    var estado = v===0?'FALTA':v===1?'TENGO':'REPETIDA';
+    var cant = v===0?0:v;
+    rows.push([f.id, f.name, 'FWC', estado, cant]);
+  }
+  rows.push([]);
+
+  // Por grupo y equipo
+  var gkeys=Object.keys(GROUPS);
+  for(var gi=0;gi<gkeys.length;gi++){
+    var gid2=gkeys[gi], grp2=GROUPS[gid2];
+    rows.push(['── GRUPO '+gid2+' ──', '', '', '', '']);
+    for(var ti=0;ti<grp2.t.length;ti++){
+      var tid2=grp2.t[ti], t2=TEAMS[tid2];
+      for(var si=1;si<=20;si++){
+        var k2=tid2+si, v2=gv(k2);
+        var lbl2=si===1?tid2+' - Escudo':tid2+' #'+si;
+        var desc2=si===1?t2.n+' — Escudo':t2.n+' — Jugador #'+si;
+        var estado2=v2===0?'FALTA':v2===1?'TENGO':'REPETIDA';
+        rows.push([k2, desc2, 'Grupo '+gid2+' - '+t2.n, estado2, v2===0?0:v2]);
+      }
+    }
+    rows.push([]);
+  }
+
+  // Convert to CSV with BOM for Excel Spanish encoding
+  var csv = '﻿'; // BOM for UTF-8
+  rows.forEach(row=>{
+    csv += row.map(cell=>{
+      var s = String(cell===null||cell===undefined?'':cell);
+      if(s.includes(',') || s.includes('"') || s.includes('
+')) s='"'+s.replace(/"/g,'""')+'"';
+      return s;
+    }).join(',') + '
+';
+  });
+
+  // Download
+  var blob = new Blob([csv], {type:'text/csv;charset=utf-8'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url;
+  a.download = 'figuritas_mundial2026_'+nombre.replace(/\s+/g,'_')+'.csv';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('📥 Descargando Excel...');
+}
 
 // ─── PRINT ────────────────────────────────────────────────────
 function printList(mode) {
