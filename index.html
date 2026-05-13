@@ -214,10 +214,27 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:-1;bac
 </div>
 
 <div class="screen" id="screenSwaps">
-  <div class="sec-lbl">🔄 MIS REPETIDAS — puedo dar</div>
-  <div id="swGive"></div>
-  <div class="sec-lbl" style="margin-top:22px">🙋 MIS FALTANTES — quién las tiene</div>
-  <div id="swNeed"></div>
+  <!-- Selector de usuario -->
+  <div class="sec-lbl">👥 COMPARAR CON</div>
+  <div id="swUserList" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px"></div>
+  <!-- Tabla de intercambio -->
+  <div id="swTable" style="display:none">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <button onclick="clearSwapUser()" style="background:rgba(255,255,255,.05);border:1px solid var(--bord);border-radius:8px;padding:7px 12px;color:var(--text2);font-size:12px;font-weight:700;cursor:pointer">← Volver</button>
+      <div id="swTableTitle" style="font-family:var(--fh);font-size:16px;font-weight:900;color:var(--gold)"></div>
+    </div>
+    <!-- Columnas -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div>
+        <div id="swColMeTitle" style="font-family:var(--fh);font-size:14px;font-weight:900;text-align:center;padding:10px;background:rgba(0,232,135,.15);border:1px solid rgba(0,232,135,.3);border-radius:10px;color:var(--green);margin-bottom:6px"></div>
+        <div id="swColMe"></div>
+      </div>
+      <div>
+        <div id="swColThemTitle" style="font-family:var(--fh);font-size:14px;font-weight:900;text-align:center;padding:10px;background:rgba(0,229,255,.1);border:1px solid rgba(0,229,255,.25);border-radius:10px;color:#00e5ff;margin-bottom:6px"></div>
+        <div id="swColThem"></div>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="screen" id="screenConfig">
@@ -526,17 +543,87 @@ function cycleFWC(k,d){const v=gv(k),nv=v>=3?0:v+1;sv(k,nv);d.querySelector('.fw
 function allFWC(val){for(const f of FWC_LIST)sv(f.id,val);renderFWCList();}
 
 // ─── SWAPS ────────────────────────────────────────────────────
-function gotoSwaps(){screen('Swaps');renderSwaps();}
-function renderSwaps(){
-  const ge=$id('swGive'),ne=$id('swNeed');ge.innerHTML='';ne.innerHTML='';
+function gotoSwaps(){screen('Swaps');renderSwapUsers();}
+
+function renderSwapUsers(){
+  const list=$id('swUserList');
+  list.innerHTML='';
+  $id('swTable').style.display='none';
   const mn=session?.nombre||'';
-  const iGive=ALL_KEYS.filter(k=>gv(k)>=2);
-  if(!iGive.length){ge.innerHTML='<div style="color:var(--text2);font-size:13px;padding:10px 0">No tenés repetidas aún.</div>';}
-  else{for(const k of iGive){const v=gv(k),needers=allNames.filter(n=>n!==mn&&(allData[k]?.[n]||0)===0);const c=document.createElement('div');c.className='swap-card';c.innerHTML=`<div class="swap-code">${k}</div><div class="swap-desc">${kLabel(k)}</div><div style="font-size:11px;color:var(--text2);margin-top:2px">Tenés ${v-1} para dar</div><div class="swap-chips">${needers.length?needers.map(n=>`<span class="chip chip-g">🙋 ${n}</span>`).join(''):'<span style="font-size:11px;color:var(--muted)">Nadie la necesita aún</span>'}</div>`;ge.appendChild(c);}}
-  const iNeed=ALL_KEYS.filter(k=>gv(k)===0);
-  const wo=iNeed.map(k=>({k,o:allNames.filter(n=>n!==mn&&(allData[k]?.[n]||0)>=2)})).filter(x=>x.o.length);
-  if(!wo.length){ne.innerHTML=iNeed.length?'<div style="color:var(--text2);font-size:13px;padding:10px 0">Nadie tiene repetidas de tus faltantes aún.</div>':'<div style="color:var(--green);font-size:13px;padding:10px 0">🎉 ¡Tenés todas!</div>';}
-  else{for(const{k,o}of wo.slice(0,60)){const c=document.createElement('div');c.className='swap-card';c.innerHTML=`<div class="swap-code">${k}</div><div class="swap-desc">${kLabel(k)}</div><div class="swap-chips">${o.map(n=>`<span class="chip chip-o">🤝 ${n}</span>`).join('')}</div>`;ne.appendChild(c);}}
+  const others=allNames.filter(n=>n!==mn);
+  if(!others.length){
+    list.innerHTML='<div style="color:var(--text2);font-size:13px;padding:10px 0">No hay otros usuarios en el grupo todavía.</div>';
+    return;
+  }
+  others.forEach(name=>{
+    const btn=document.createElement('button');
+    btn.style.cssText='padding:10px 16px;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:var(--text);font-family:var(--fh);font-size:15px;font-weight:700;cursor:pointer;transition:all .15s';
+    btn.textContent='👤 '+name;
+    btn.onmouseenter=()=>btn.style.background='rgba(255,255,255,.12)';
+    btn.onmouseleave=()=>btn.style.background='rgba(255,255,255,.06)';
+    btn.onclick=()=>showSwapWith(name);
+    list.appendChild(btn);
+  });
+}
+
+function clearSwapUser(){
+  $id('swTable').style.display='none';
+  $id('swUserList').style.display='flex';
+  document.querySelector('#screenSwaps .sec-lbl').style.display='block';
+}
+
+function showSwapWith(otherName){
+  const mn=session?.nombre||'';
+  $id('swUserList').style.display='none';
+  document.querySelector('#screenSwaps .sec-lbl').style.display='none';
+  $id('swTable').style.display='block';
+  $id('swTableTitle').textContent='🔄 '+mn+' ↔ '+otherName;
+  $id('swColMeTitle').textContent=mn;
+  $id('swColThemTitle').textContent=otherName;
+
+  // Lo que yo puedo DAR: yo tengo repetidas (>=2) y al otro le falta (0)
+  const iCanGive=ALL_KEYS.filter(k=>gv(k)>=2&&(allData[k]?.[otherName]||0)===0);
+  // Lo que yo puedo RECIBIR: yo me falta (0) y el otro tiene repetidas (>=2)
+  const iCanGet=ALL_KEYS.filter(k=>gv(k)===0&&(allData[k]?.[otherName]||0)>=2);
+
+  const meEl=$id('swColMe');
+  const themEl=$id('swColThem');
+  meEl.innerHTML='';
+  themEl.innerHTML='';
+
+  // Columna MIA — lo que yo doy
+  if(!iCanGive.length){
+    meEl.innerHTML='<div style="color:var(--text2);font-size:12px;padding:8px;text-align:center">No tenés repetidas<br>que le falten a '+otherName+'</div>';
+  } else {
+    iCanGive.forEach(k=>{
+      const v=gv(k);
+      const d=document.createElement('div');
+      d.className='swap-card';
+      d.style.marginBottom='5px';
+      d.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center">'
+        +'<div><div class="swap-code">'+k+'</div><div class="swap-desc">'+kLabel(k)+'</div></div>'
+        +'<span style="color:var(--orange);font-family:var(--fh);font-size:13px;font-weight:900">+'+(v-1)+'</span>'
+        +'</div>';
+      meEl.appendChild(d);
+    });
+  }
+
+  // Columna DEL OTRO — lo que yo recibo
+  if(!iCanGet.length){
+    themEl.innerHTML='<div style="color:var(--text2);font-size:12px;padding:8px;text-align:center">'+otherName+' no tiene<br>repetidas que te falten</div>';
+  } else {
+    iCanGet.forEach(k=>{
+      const vOther=allData[k]?.[otherName]||0;
+      const d=document.createElement('div');
+      d.className='swap-card';
+      d.style.marginBottom='5px';
+      d.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center">'
+        +'<div><div class="swap-code">'+k+'</div><div class="swap-desc">'+kLabel(k)+'</div></div>'
+        +'<span style="color:var(--orange);font-family:var(--fh);font-size:13px;font-weight:900">+'+(vOther-1)+'</span>'
+        +'</div>';
+      themEl.appendChild(d);
+    });
+  }
 }
 
 // ─── CONFIG ───────────────────────────────────────────────────
