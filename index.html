@@ -404,14 +404,16 @@ function showMainUI(){
 
 // ─── NAV ──────────────────────────────────────────────────────
 function navTo(view){
-  ['nAlbum','nSwaps','nRanking','nUser','nConf'].forEach(id=>$id(id).classList.remove('active'));
-  if(view==='groups'){$id('nAlbum').classList.add('active');gotoGroups(curGroup);}
-  else if(view==='swaps'){$id('nSwaps').classList.add('active');gotoSwaps();}
-  else if(view==='user'){$id('nUser').classList.add('active');gotoGroups(curGroup);}
-  else if(view==='ranking'){$id('nRanking').classList.add('active');gotoRanking();}
-  else if(view==='ranking'){$id('nRanking').classList.add('active');gotoRanking();}
-  else if(view==='ranking'){$id('nRanking').classList.add('active');gotoRanking();}
-  else if(view==='config'){$id('nConf').classList.add('active');gotoConfig();}
+  ['nAlbum','nSwaps','nRanking','nUser','nConf'].forEach(id => {
+    const el = $id(id);
+    if(el) el.classList.remove('active');
+  });
+
+  if(view === 'groups'){ $id('nAlbum').classList.add('active'); gotoGroups(curGroup); }
+  else if(view === 'swaps'){ $id('nSwaps').classList.add('active'); gotoSwaps(); }
+  else if(view === 'user'){ $id('nUser').classList.add('active'); gotoConfig(); }
+  else if(view === 'ranking'){ $id('nRanking').classList.add('active'); gotoRanking(); }
+  else if(view === 'config'){ $id('nConf').classList.add('active'); gotoConfig(); }
 }
 
 // ─── GROUPS ───────────────────────────────────────────────────
@@ -767,11 +769,9 @@ function downloadExcel() {
   rows.forEach(row=>{
     csv += row.map(cell=>{
       var s = String(cell===null||cell===undefined?'':cell);
-      if(s.includes(',') || s.includes('"') || s.includes('
-')) s='"'+s.replace(/"/g,'""')+'"';
+      if(s.includes(',') || s.includes('"') || s.includes('\n')) s='"'+s.replace(/"/g,'""')+'"';
       return s;
-    }).join(',') + '
-';
+    }).join(',') + '\n';
   });
 
   // Download
